@@ -1,17 +1,25 @@
 const { Pool } = require('pg');
 require('dotenv').config();
 
+// Verifica se a URL existe
+if (!process.env.DATABASE_URL) {
+  console.error("❌ ERRO: DATABASE_URL faltando no arquivo .env");
+  process.exit(1);
+}
+
 const pool = new Pool({
-  user: process.env.DB_USER,
-  host: process.env.DB_HOST,
-  database: process.env.DB_NAME,
-  password: process.env.DB_PASSWORD,
-  port: process.env.DB_PORT,
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false // Permite conexão SSL com Supabase
+  }
 });
 
-// Teste de conexão
 pool.on('connect', () => {
-  console.log('Base de Dados conectada com sucesso! 🐘');
+  // console.log('Base conectada!');
+});
+
+pool.on('error', (err) => {
+  console.error('❌ Erro no Banco:', err);
 });
 
 module.exports = {
