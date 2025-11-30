@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  # Serviço do Banco de Dados
+  db:
+    image: postgres:15
+    container_name: chef_db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: admin123  # Senha simples para desenvolvimento
+      POSTGRES_DB: chefinhouse_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  # Podemos adicionar o Node.js aqui no futuro, 
+  # mas por enquanto vamos rodar o Node localmente para facilitar.
+
+volumes:
+  pgdata:
