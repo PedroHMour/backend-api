@@ -11,6 +11,8 @@ routes.post('/check-user', AuthController.checkUser);
 routes.post('/signup', AuthController.signup);
 routes.post('/login', AuthController.login);
 routes.post('/auth/google', AuthController.googleLogin);
+// Tem que ser /auth/googleLogin para casar com o frontend novo
+routes.post('/auth/googleLogin', (req, res) => AuthController.googleLogin(req, res));
 
 // --- REQUESTS (PEDIDOS) ---
 routes.post('/requests', OrderController.create);
