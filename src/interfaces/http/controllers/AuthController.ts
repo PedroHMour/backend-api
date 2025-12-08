@@ -1,46 +1,89 @@
-// src/interfaces/http/controllers/AuthController.ts
-import { Request, Response } from 'express';
-import { AuthService } from '../../../application/services';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+// REMOVIDO: import { OAuth2Client } ...
+// ADICIONADO: Import do Firebase Admin que acabamos de criar
+import admin from '../../../config/firebase'; 
+import { UserRepository } from '../../../infrastructure/repositories';
+import { CreateUserDTO, User } from '../../../domain/models';
+import { env } from '../../../config/env';
 
-class AuthController {
-  async signup(req: Request, res: Response) {
+export const AuthService = {
+  async signup(data: CreateUserDTO) {
+    const exists = await UserRepository.findByEmail(data.email);
+    if (exists) throw new Error("E-mail já cadastrado.");
+
+    const hashedPassword = await bcrypt.hash(data.password, 10);
+    
+    const user = await UserRepository.create({
+      ...data,
+      password: hashedPassword
+    });
+
+    const token = this.generateToken(user);
+    return { user, token };
+  },
+
+  async login(email: string, pass: string) {
+    const user = await UserRepository.findByEmail(email);
+    if (!user) throw new Error("Usuário não encontrado.");
+    if (!user.password) throw new Error("Usuário logado via Google. Use o botão Google.");
+
+    const isValid = await bcrypt.compare(pass, user.password);
+    if (!isValid) throw new Error("Senha incorreta.");
+
+    const token = this.generateToken(user);
+    const { password, ...safeUser } = user; 
+    return { user: safeUser, token };
+  },
+
+  // --- AQUI ESTÁ A CORREÇÃO MÁGICA ---
+  async googleLogin(token: string) {
     try {
-      const result = await AuthService.signup(req.body);
-      return res.status(201).json(result);
-    } catch (error: any) {
-      return res.status(400).json({ error: error.message });
-    }
-  }
+      // 1. Valida usando o FIREBASE ADMIN (não o google client)
+      const decodedToken = await admin.auth().verifyIdToken(token);
+      
+      const { email, name, picture } = decodedToken;
+      
+      if (!email) throw new Error("Token sem e-mail.");
 
-  async login(req: Request, res: Response) {
-    try {
-      const { email, password } = req.body;
-      const result = await AuthService.login(email, password);
-      return res.json(result);
-    } catch (error: any) {
-      return res.status(401).json({ error: error.message });
-    }
-  }
+      // 2. Verifica ou Cria
+      let user = await UserRepository.findByEmail(email);
 
-  async googleLogin(req: Request, res: Response) {
-    try {
-      const { token } = req.body;
-      const result = await AuthService.googleLogin(token);
-      return res.json(result);
-    } catch (error: any) {
-      return res.status(401).json({ error: error.message });
-    }
-  }
+      if (!user) {
+        // Gera senha aleatória
+        const randomPass = Math.random().toString(36).slice(-8);
+        const hashedPassword = await bcrypt.hash(randomPass, 10);
+        
+        user = await UserRepository.create({
+          name: name || 'Usuário Google',
+          email: email,
+          password: hashedPassword,
+          type: 'client' 
+        });
+      }
 
-  async checkUser(req: Request, res: Response) {
-    try {
-      const { email } = req.body;
-      const result = await AuthService.checkUserExists(email);
-      return res.json(result);
-    } catch (error: any) {
-      return res.status(500).json({ error: error.message });
-    }
-  }
-}
+      // Gera o token JWT da TUA aplicação (para ele continuar logado)
+      const appToken = this.generateToken(user);
+      const { password, ...safeUser } = user;
+      
+      return { user: safeUser, token: appToken };
 
-export default new AuthController();
+    } catch (error) {
+      console.error("Erro na verificação do token Firebase:", error);
+      throw new Error("Token inválido ou expirado.");
+    }
+  },
+
+  async checkUserExists(email: string) {
+    const user = await UserRepository.findByEmail(email);
+    return user ? { exists: true, name: user.name } : { exists: false };
+  },
+
+  generateToken(user: User) {
+    return jwt.sign(
+      { id: user.id, type: user.type }, 
+      env.jwtSecret, 
+      { expiresIn: '30d' }
+    );
+  }
+};
