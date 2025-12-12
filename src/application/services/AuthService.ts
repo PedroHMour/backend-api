@@ -1,13 +1,14 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-// REMOVIDO: import { OAuth2Client } ...
-// ADICIONADO: Import do Firebase Admin que acabamos de criar
+// Import do Firebase Admin (Verifique se o caminho bate com o arquivo que criamos)
 import admin from '../../config/firebase'; 
 import { UserRepository } from '../../infrastructure/repositories';
 import { CreateUserDTO, User } from '../../domain/models';
 import { env } from '../../config/env';
 
 export const AuthService = {
+  
+  // Cadastro Manual
   async signup(data: CreateUserDTO) {
     const exists = await UserRepository.findByEmail(data.email);
     if (exists) throw new Error("E-mail já cadastrado.");
@@ -23,6 +24,7 @@ export const AuthService = {
     return { user, token };
   },
 
+  // Login Manual
   async login(email: string, pass: string) {
     const user = await UserRepository.findByEmail(email);
     if (!user) throw new Error("Usuário não encontrado.");
@@ -36,40 +38,46 @@ export const AuthService = {
     return { user: safeUser, token };
   },
 
-  // --- AQUI ESTÁ A CORREÇÃO MÁGICA ---
-  async googleLogin(token: string) {
+  // --- CORREÇÃO DO LOGIN GOOGLE (AGORA DIFERENCIA CHEF/CLIENTE) ---
+  async googleLogin(token: string, userType: string = 'client', userName?: string) {
     try {
-      // 1. Valida usando o FIREBASE ADMIN (não o google client)
+      // 1. Valida o token vindo do App
       const decodedToken = await admin.auth().verifyIdToken(token);
       
-      const { email, name, picture } = decodedToken;
+      const { email, name: googleName } = decodedToken;
       
       if (!email) throw new Error("Token sem e-mail.");
 
-      // 2. Verifica ou Cria
+      // 2. Verifica se o usuário já existe no banco
       let user = await UserRepository.findByEmail(email);
 
       if (!user) {
-        // Gera senha aleatória
+        // --- MOMENTO DE CRIAÇÃO ---
+        // Se o usuário não existe, criamos com o TIPO escolhido no App
+        
         const randomPass = Math.random().toString(36).slice(-8);
         const hashedPassword = await bcrypt.hash(randomPass, 10);
         
         user = await UserRepository.create({
-          name: name || 'Usuário Google',
+          // Preferência: Nome digitado no App > Nome do Google > Genérico
+          name: userName || googleName || 'Usuário Google',
           email: email,
           password: hashedPassword,
-          type: 'client' 
+          // LÓGICA DO TIPO: Se veio 'cook', salva como 'cook', senão 'client'
+          type: userType === 'cook' ? 'cook' : 'client' 
         });
       }
+      
+      // Se o usuário JÁ EXISTIA, ele loga com o tipo que já tinha no banco (segurança)
 
-      // Gera o token JWT da TUA aplicação (para ele continuar logado)
+      // 3. Gera o token JWT do sistema
       const appToken = this.generateToken(user);
       const { password, ...safeUser } = user;
       
       return { user: safeUser, token: appToken };
 
     } catch (error) {
-      console.error("Erro na verificação do token Firebase:", error);
+      console.error("Erro no AuthService Google:", error);
       throw new Error("Token inválido ou expirado.");
     }
   },

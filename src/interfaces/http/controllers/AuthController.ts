@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-// Ajuste os "../" se necessário para chegar na pasta services
+// Certifique-se que o caminho do import está correto para sua estrutura
 import { AuthService } from '../../../application/services/AuthService'; 
 
 class AuthController {
@@ -25,13 +25,13 @@ class AuthController {
     }
   }
 
-  // 3. Login Google (Onde o App bate)
+  // 3. Login Google (ATUALIZADO)
   async googleLogin(req: Request, res: Response) {
     try {
-      // Recebe o token que enviamos no 'payload' do App
-      const { token } = req.body;
+      // CORREÇÃO: Pegamos token, type e name enviados pelo App
+      const { token, type, name } = req.body;
       
-      const result = await AuthService.googleLogin(token);
+      const result = await AuthService.googleLogin(token, type, name);
       return res.json(result);
     } catch (error: any) {
       return res.status(401).json({ error: error.message });
@@ -50,5 +50,4 @@ class AuthController {
   }
 }
 
-// --- ESSA É A LINHA QUE O RAILWAY ESTAVA PEDINDO ---
 export default new AuthController();
