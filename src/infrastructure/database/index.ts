@@ -9,21 +9,21 @@ const pool = new Pool({
   ssl: {
     rejectUnauthorized: false, 
   },
-  // Configurações de performance
+  // Configurações de performance e Resiliência
   max: 20, // Máximo de conexões simultâneas
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
+  connectionTimeoutMillis: 10000, // AUMENTADO PARA 10s (Resolvido o erro de timeout)
 });
 
 // Listeners de Eventos do Banco
 pool.on('connect', () => {
-  // Silencioso em produção, útil em dev
   // logger.info('📦 Nova conexão com o banco estabelecida');
 });
 
 pool.on('error', (err) => {
   logger.error('❌ Erro inesperado no cliente do banco (Idle Client)', err);
-  process.exit(-1); // Encerra o processo em caso de erro crítico
+  // Não encerramos o processo imediatamente para tentar recuperação automática do Pool
+  // process.exit(-1); 
 });
 
 // Wrapper Profissional para Queries
@@ -32,7 +32,8 @@ export const db = {
     const start = Date.now();
     try {
       const res = await pool.query(text, params);
-      // Opcional: Logar queries lentas (> 1s)
+      
+      // Log de queries lentas (> 1s)
       const duration = Date.now() - start;
       if (duration > 1000) {
         logger.warn(`⚠️ Query lenta (${duration}ms): ${text}`);
@@ -46,4 +47,4 @@ export const db = {
   
   // Para transações complexas onde precisamos do cliente direto
   getClient: () => pool.connect(),
-};  
+};
