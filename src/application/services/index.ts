@@ -3,3 +3,4 @@ export * from './OrderService';
 export * from './ChatService';
 export * from './PortfolioService';
 export * from './ReviewService';
+export * from './PaymentService';

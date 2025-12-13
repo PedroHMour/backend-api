@@ -18,4 +18,6 @@ export const env = {
   jwtSecret: process.env.JWT_SECRET || 'default_secret_dev_only',
   googleClientId: process.env.GOOGLE_CLIENT_ID || '',
   nodeEnv: process.env.NODE_ENV || 'development',
+
+  
 };

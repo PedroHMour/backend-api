@@ -3,3 +3,4 @@ export * from './Request';
 export * from './Message';
 export * from './Portfolio';
 export * from './Review';
+export * from './Payment';

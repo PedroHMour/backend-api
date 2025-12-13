@@ -5,3 +5,4 @@ export { default as OrderController } from './OrderController';
 export { default as ChatController } from './ChatController';
 export { default as PortfolioController } from './PortfolioController';
 export { default as ReviewController } from './ReviewController';
+export { default as PaymentController } from './PaymentController';

@@ -1,8 +1,10 @@
 import { Router } from 'express';
 import { 
   AuthController, OrderController, ChatController, 
-  PortfolioController, ReviewController 
+  PortfolioController, ReviewController, PaymentController 
 } from '../controllers'; // Precisamos criar um index.ts nos controllers também!
+
+
 
 const routes = Router();
 
@@ -36,5 +38,10 @@ routes.delete('/portfolio/:id', PortfolioController.delete);
 // --- REVIEWS & STATS ---
 routes.post('/reviews', ReviewController.create);
 routes.get('/users/:id/stats', ReviewController.getStats); // Rota unificada de stats
+
+// --- PAGAMENTOS (NOVAS ROTAS) ---
+routes.post('/payments/pix', PaymentController.payWithPix);
+routes.post('/payments/card', PaymentController.payWithCard);
+routes.post('/webhook', PaymentController.webhook);
 
 export { routes };
