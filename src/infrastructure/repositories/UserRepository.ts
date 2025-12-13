@@ -41,5 +41,11 @@ export const UserRepository = {
         total_earnings: 0
       };
     }
+  },
+
+  // --- NOVO MÉTODO ---
+  async delete(id: number): Promise<void> {
+    // Apaga o usuário pelo ID
+    await db.query('DELETE FROM users WHERE id = $1', [id]);
   }
 };
