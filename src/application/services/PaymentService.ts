@@ -43,7 +43,8 @@ export const PaymentService = {
           description: data.description,
           installments: data.installments,
           payment_method_id: data.payment_method_id,
-          issuer_id: data.issuer_id,
+          // CORREÇÃO: Converter para Number
+          issuer_id: Number(data.issuer_id), 
           payer: {
             email: data.payer_email,
             first_name: data.payer_first_name,
@@ -61,6 +62,8 @@ export const PaymentService = {
       };
     } catch (error: any) {
       console.error("Erro MP Cartão:", error);
+      // Logar o erro real do MP para ajudar no debug
+      if (error.cause) console.error(JSON.stringify(error.cause, null, 2));
       throw new Error("Falha ao processar cartão.");
     }
   },
