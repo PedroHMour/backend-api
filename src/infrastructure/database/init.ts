@@ -1,3 +1,4 @@
+// src/infrastructure/database/init.ts
 import { db } from './index';
 import { logger } from '../../shared/logger';
 import { initialSchema } from './migrations/001_initial_schema';

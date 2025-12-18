@@ -8,6 +8,7 @@ export const UserRepository = {
   },
 
   async create(data: CreateUserDTO): Promise<User> {
+    // Agora aceitamos que o banco use os valores default para gender/premium se não forem passados
     const result = await db.query(
       'INSERT INTO users (name, email, password, type) VALUES ($1, $2, $3, $4) RETURNING *',
       [data.name, data.email, data.password, data.type]
@@ -16,7 +17,7 @@ export const UserRepository = {
   },
 
   async findById(id: number): Promise<User | null> {
-    const result = await db.query('SELECT id, name, email, type FROM users WHERE id = $1', [id]);
+    const result = await db.query('SELECT id, name, email, type, gender, is_premium, avatar_url FROM users WHERE id = $1', [id]);
     return result.rows[0] || null;
   },
 
@@ -43,9 +44,27 @@ export const UserRepository = {
     }
   },
 
-  // --- NOVO MÉTODO ---
   async delete(id: number): Promise<void> {
-    // Apaga o usuário pelo ID
     await db.query('DELETE FROM users WHERE id = $1', [id]);
+  },
+
+  // --- NOVOS MÉTODOS PARA O MAPA ---
+
+  // Busca todos os chefes que têm localização definida
+  async findAllCooks(): Promise<User[]> {
+    const result = await db.query(`
+      SELECT id, name, email, type, gender, is_premium, latitude, longitude, avatar_url 
+      FROM users 
+      WHERE type = 'cook' AND latitude IS NOT NULL
+    `);
+    return result.rows;
+  },
+
+  // Atualiza a posição do usuário (GPS)
+  async updateLocation(id: number, lat: number, lng: number): Promise<void> {
+    await db.query(
+      'UPDATE users SET latitude = $1, longitude = $2 WHERE id = $3',
+      [lat, lng, id]
+    );
   }
 };

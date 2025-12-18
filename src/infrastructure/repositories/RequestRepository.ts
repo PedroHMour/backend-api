@@ -3,14 +3,16 @@ import { CreateRequestDTO, RequestOrder } from '../../domain/models';
 
 export const RequestRepository = {
   async create(data: CreateRequestDTO): Promise<RequestOrder> {
+    // Cria o pedido SEM cozinheiro (status pending)
     const result = await db.query(
-      `INSERT INTO requests (client_id, dish_description, offer_price, latitude, longitude) 
-       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+      `INSERT INTO requests (client_id, dish_description, offer_price, latitude, longitude, status) 
+       VALUES ($1, $2, $3, $4, $5, 'pending') RETURNING *`,
       [data.client_id, data.dish_description, data.offer_price, data.latitude, data.longitude]
     );
     return result.rows[0];
   },
 
+  // Busca TODOS os pendentes (Mural de Pedidos)
   async findAllPending(): Promise<RequestOrder[]> {
     const result = await db.query(`
       SELECT r.*, u.name as client_name 
@@ -22,6 +24,7 @@ export const RequestRepository = {
     return result.rows;
   },
 
+  // Busca pedidos de um CLIENTE específico
   async findActiveByClient(clientId: number): Promise<RequestOrder | null> {
     const result = await db.query(`
       SELECT r.*, u.name as cook_name 
@@ -34,6 +37,7 @@ export const RequestRepository = {
     return result.rows[0] || null;
   },
 
+  // Busca pedidos aceitos por um COZINHEIRO específico
   async findActiveByCook(cookId: number): Promise<RequestOrder[]> {
     const result = await db.query(`
       SELECT r.*, u.name as client_name 
@@ -54,6 +58,7 @@ export const RequestRepository = {
     return result.rows[0] || null;
   },
 
+  // O momento mágico: Associa o Chefe ao Pedido
   async accept(requestId: number, cookId: number): Promise<RequestOrder | null> {
     const result = await db.query(
       "UPDATE requests SET status = 'accepted', cook_id = $1 WHERE id = $2 RETURNING *",

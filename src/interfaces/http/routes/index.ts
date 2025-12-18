@@ -1,3 +1,4 @@
+// src/interfaces/http/routes/index.ts
 import { Router } from 'express';
 import { 
   AuthController, OrderController, ChatController, 
@@ -12,13 +13,14 @@ routes.post('/signup', AuthController.signup);
 routes.post('/login', AuthController.login);
 routes.post('/auth/google', AuthController.googleLogin);
 routes.post('/auth/googleLogin', (req, res) => AuthController.googleLogin(req, res));
-
-// Rota de Excluir Conta (NOVA)
 routes.delete('/users/:id', AuthController.deleteUser);
 
 // --- REQUESTS (PEDIDOS) ---
 routes.post('/requests', OrderController.create);
-routes.get('/requests', OrderController.listPending);
+
+// ROTA CRUCIAL: Chefe busca todos os pendentes aqui
+routes.get('/requests', OrderController.listPending); 
+
 routes.post('/requests/accept', OrderController.accept);
 routes.post('/requests/update-status', OrderController.updateStatus);
 
