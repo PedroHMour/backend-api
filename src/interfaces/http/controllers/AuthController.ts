@@ -1,9 +1,11 @@
 import { Request, Response } from 'express';
-import { AuthService } from '../../../application/services/AuthService'; 
-import { UserRepository } from '../../../infrastructure/repositories/UserRepository'; // Import necessário para o mapa
+import { AuthService } from '../../../application/services/AuthService';
+import { UserRepository } from '../../../infrastructure/repositories/UserRepository';
 
 class AuthController {
   
+  // --- Métodos de Autenticação Existentes ---
+
   async signup(req: Request, res: Response) {
     try {
       const result = await AuthService.signup(req.body);
@@ -25,6 +27,7 @@ class AuthController {
 
   async googleLogin(req: Request, res: Response) {
     try {
+      // Recebe token e tipo (client/cook)
       const { token, type, name } = req.body;
       const result = await AuthService.googleLogin(token, type, name);
       return res.json(result);
@@ -53,11 +56,13 @@ class AuthController {
     }
   }
 
-  // --- NOVAS FUNÇÕES PARA O MAPA ---
+  // --- NOVOS MÉTODOS PARA O MAPA (Essenciais para o Dashboard) ---
 
   // Rota: GET /chefs
   async listChefs(req: Request, res: Response) {
     try {
+        // Busca todos os usuários do tipo 'cook' no banco
+        // Nota: Certifique-se que o UserRepository tem o método findAllCooks
         const chefs = await UserRepository.findAllCooks();
         return res.json(chefs);
     } catch (error: any) {
@@ -71,11 +76,13 @@ class AuthController {
         const { id, latitude, longitude } = req.body;
         
         if (!id || latitude === undefined || longitude === undefined) {
-            return res.status(400).json({ error: 'Dados incompletos' });
+            return res.status(400).json({ error: 'Dados de localização incompletos' });
         }
 
+        // Atualiza a latitude/longitude do usuário no banco
         await UserRepository.updateLocation(Number(id), Number(latitude), Number(longitude));
-        return res.json({ message: 'Localização atualizada' });
+        
+        return res.json({ message: 'Localização atualizada com sucesso' });
     } catch (error: any) {
         return res.status(500).json({ error: 'Erro ao atualizar local: ' + error.message });
     }
